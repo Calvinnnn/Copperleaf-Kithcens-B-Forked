@@ -1,0 +1,61 @@
+erDiagram
+    BRANCHES ||--o{ STAFF : employs
+    BRANCHES ||--o{ INVENTORY_ITEMS : stocks
+    BRANCHES ||--o{ SUPPLIER_ORDERS : places
+    SUPPLIERS ||--o{ INVENTORY_ITEMS : supplies
+    SUPPLIERS ||--o{ SUPPLIER_ORDERS : fulfills
+    INVENTORY_ITEMS ||--o{ INVENTORY_TRANSACTIONS : "logged in"
+    INVENTORY_ITEMS ||--o{ SUPPLIER_ORDERS : "ordered as"
+    STAFF ||--o{ INVENTORY_TRANSACTIONS : records
+
+    BRANCHES {
+        int branch_id PK
+        string name
+        string address
+        string phone
+    }
+    STAFF {
+        int staff_id PK
+        int branch_id FK
+        string full_name
+        string email
+        string role
+        int active
+        string api_token
+    }
+    SUPPLIERS {
+        int supplier_id PK
+        string name
+        string contact_email
+        string phone
+    }
+    INVENTORY_ITEMS {
+        int item_id PK
+        int branch_id FK
+        int supplier_id FK
+        string name
+        string category
+        string unit
+        real current_quantity
+        real reorder_threshold
+        real unit_cost
+    }
+    INVENTORY_TRANSACTIONS {
+        int transaction_id PK
+        int item_id FK
+        int staff_id FK
+        string change_type
+        real quantity_change
+        string reason
+        string created_at
+    }
+    SUPPLIER_ORDERS {
+        int order_id PK
+        int branch_id FK
+        int supplier_id FK
+        int item_id FK
+        real quantity
+        string status
+        string ordered_at
+        string expected_delivery
+    }
