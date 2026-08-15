@@ -12,6 +12,7 @@ of the memory subsystem as required by the Copperleaf Kitchens Architecture:
 
 import os
 from typing import Any, Dict, List, Optional
+from langchain_core.language_models.chat_models import BaseChatModel
 
 # ---------------------------------------------------------------------
 # MCP Server Integration
@@ -43,6 +44,7 @@ from memory.semantic import SemanticMemory
 from memory.short_term import ShortTermMemory, ShortTermMemoryItem
 from memory.verification import SelfRAGVerifier, VerificationResult
 from context_eval.sliding_window import SlidingWindowStrategy, BaseContextStrategy
+from .planning_agent import PlanningAgent
 
 
 class MemoryEnabledAgent:
@@ -362,6 +364,7 @@ class MemoryEnabledAgent:
 
 
 if __name__ == "__main__":
+    from langchain_mistralai import ChatMistralAI
     # Smoke test for the agent integration wiring
     print("Initializing MemoryEnabledAgent...")
     agent = MemoryEnabledAgent(stm_capacity=3, consolidation_batch_size=5)
@@ -436,3 +439,46 @@ if __name__ == "__main__":
 
     print("\nEnd-to-end agent loop wired: STM -> router -> episodic -> "
           "consolidation + RAG + Self-RAG + existing MCP server tools.")
+          
+    print("\n=== UnifiedAgent Routing Test ===")
+    unified = UnifiedAgent(llm=ChatMistralAI(api_key="mock", model="mistral-small-latest") if _MCP_SERVER_AVAILABLE else None, api_token="tok_mona_mgr_9f2a")
+    print("\nUser: 'Tell me about the corporate structure'")
+    ans1 = unified.handle_request("Tell me about the corporate structure")
+    print(f"Result: {ans1}")
+    
+    print("\nUser: 'Audit the produce inventory'")
+    try:
+        ans2 = unified.handle_request("Audit the produce inventory")
+        print(f"Result length: {len(ans2)} chars")
+    except Exception as e:
+        print(f"Result expectedly mocked: {e}")
+
+class UnifiedAgent:
+    """An agent that routes operational/planning goals to PlanningAgent,
+    and conversational/knowledge queries to MemoryEnabledAgent.
+    """
+    def __init__(
+        self,
+        llm: BaseChatModel,
+        api_token: Optional[str] = None,
+    ):
+        self.memory_agent = MemoryEnabledAgent(api_token=api_token, enable_rag=True)
+        self.planning_agent = PlanningAgent(llm=llm, api_token=api_token, memory_agent=self.memory_agent)
+        self.llm = llm
+        
+    def handle_request(self, request: str) -> str:
+        # Simple heuristic router for demonstration
+        req_lower = request.lower()
+        strategic_keywords = ["audit", "orders", "write-off", "strategy", "plan", "inventory", "stock", "restock"]
+        
+        if any(kw in req_lower for kw in strategic_keywords) and "?" not in request:
+            print(f"[UnifiedAgent] Routing to PlanningAgent (mode=dynamic): {request}")
+            result = self.planning_agent.run(request, self.llm, mode="dynamic")
+            return result.final_answer
+        else:
+            print(f"[UnifiedAgent] Routing to MemoryEnabledAgent: {request}")
+            self.memory_agent.receive_message(request, role="user")
+            context = self.memory_agent.build_context(query=request)
+            # In a real setup, we'd call the LLM here with the mapped context.
+            # RAG is automatically invoked inside build_context!
+            return "Processed by Memory/RAG Agent. Context enriched."

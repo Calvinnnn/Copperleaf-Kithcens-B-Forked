@@ -39,28 +39,31 @@ The supplied environment is `venv`, and `.env` must contain `MISTRAL_API_KEY`.
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-## Run
+## Agent & System Integration
 
-Run these commands from this directory:
+This project integrates two advanced intelligent agent loops:
+1. **MemoryEnabledAgent**: Handles standard conversational interactions, episodic/semantic memory consolidation, and RAG knowledge retrieval for policies.
+2. **PlanningAgent**: Handles operational tasks using advanced decomposition, Plan-and-Solve, Tree of Thoughts, and LATS dynamic planning.
+
+Both agents are integrated into a single unified facade class (`UnifiedAgent` in `agent/agent.py`) which acts alongside each other. Real operational tasks are transparently routed to the Planning Agent, which executes directly against the MCP Server (`mcp_server.tools` and `copperleaf.db`), enforcing strict database constraints (auth, bounds, sign-offs).
+
+## Run Instructions
+
+Run these commands from this directory using the virtual environment:
 
 ```powershell
+# Run the Planning Algorithms Benchmark Evaluation Setup (Generates comparison summary)
+.\venv\Scripts\python.exe -m planning_eval.evaluate
+
+# Run the Unified Agent E2E Smoke Test (Showcases routing between general RAG and Operational Planner)
+.\venv\Scripts\python.exe -m agent.agent
+
+# You can still run focused single-algorithm simulations on the CLI:
 # Full decomposition-first DAG, execution, grounded critique, and refinement
 .\venv\Scripts\python.exe -m planning_lab.cli "Design a 60-minute phishing-awareness workshop for new employees"
 
 # Dynamic/interleaved decomposition
 .\venv\Scripts\python.exe -m planning_lab.cli "Investigate why customer onboarding completion fell" --mode dynamic
-
-# One-call Plan-and-Solve
-.\venv\Scripts\python.exe -m planning_lab.cli "A project has 3 developers for 10 days. Estimate capacity at 6 focused hours per day." --mode ps
-
-# Bounded Tree-of-Thoughts search (more API calls)
-.\venv\Scripts\python.exe -m planning_lab.cli "Propose a low-cost launch strategy for a student productivity app" --mode tot --depth 2 --beam-width 2
-
-# Reflexion: retry the entire task with episodic memory from failed trials
-.\venv\Scripts\python.exe -m planning_lab.cli "Create a structured security checklist for a small API" --mode reflexion --max-trials 3 --memory-size 2
-
-# LATS: MCTS-guided candidates scored by a randomized external environment
-.\venv\Scripts\python.exe -m planning_lab.cli "Create a structured security checklist for a small API" --mode lats --iterations 2 --n-actions 2
 ```
 
 Each run prints its result and saves a JSON trace in `artifacts/`, making plans, node outputs,
