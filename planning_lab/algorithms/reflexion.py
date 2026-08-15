@@ -35,7 +35,7 @@ def reflexion(
     best_attempt = ""
     best_score = -1.0
     for number in range(1, max_trials + 1):
-        recalled = "\n".join(f"- {item}" for item in memory[-memory_size:]) or "- No prior trials."
+        recalled = "\n".join(f"- {item}" for item in memory) or "- No prior trials."
         response = llm.invoke([
             ("system", "You are the acting agent in a Reflexion loop. Attempt the entire task again."),
             ("human", f"""Task: {task}
@@ -54,7 +54,7 @@ Produce the complete deliverable. Apply remembered lessons without discussing th
             best_attempt, best_score = attempt, feedback.score
         if feedback.success:
             trials.append(trial)
-            return ReflexionResult(True, attempt, trials, memory[-memory_size:])
+            return ReflexionResult(True, attempt, trials, list(memory))
         response = llm.invoke([
             ("system", "Generate a concise first-person Reflexion memory, not a revised answer."),
             ("human", f"""Task: {task}
@@ -73,4 +73,7 @@ State what I did wrong and the specific strategy I should use next trial. Start 
         trial.reflection = reflection
         trials.append(trial)
         memory.append(reflection)
-    return ReflexionResult(False, best_attempt, trials, memory[-memory_size:])
+        # Cap memory to memory_size
+        if len(memory) > memory_size:
+            memory.pop(0)
+    return ReflexionResult(False, best_attempt, trials, list(memory))
