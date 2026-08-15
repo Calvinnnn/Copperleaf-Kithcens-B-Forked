@@ -31,7 +31,19 @@ class GeneratedPlan(BaseModel):
     tasks: list[PlannedTask]
 
 
+def validate_plan_dag(plan: Plan) -> bool:
+    """Validate that the plan is a valid Directed Acyclic Graph (DAG).
+    
+    Checks that task IDs are unique, dependencies exist, no self-dependencies exist,
+    and no directed cycles are present. Raises ValueError on violation.
+    """
+    # Plan.model_validate invokes @model_validator(mode="after") validate_dag
+    Plan.model_validate(plan.model_dump())
+    return True
+
+
 def decompose_goal(goal: str, llm: BaseChatModel) -> Plan:
+    """Decomposition-First planning: generate the entire executable DAG before execution."""
     generated = llm.with_structured_output(
         GeneratedPlan,
         method="json_schema",
@@ -44,7 +56,9 @@ Preserve the supplied goal exactly in the plan's goal field."""),
     # The caller's goal remains authoritative even if the model paraphrases it.
     payload = generated.model_dump()
     payload["goal"] = goal
-    return Plan.model_validate(payload)
+    plan = Plan.model_validate(payload)
+    validate_plan_dag(plan)
+    return plan
 
 
 def execute_plan(plan: Plan, llm: BaseChatModel, max_workers: int = 4) -> dict[str, str]:
