@@ -91,11 +91,39 @@ class SequencedEnvironment:
         return next(self.feedback)
 
 
-def test_random_environment_tends_toward_good_evaluations():
-    environment = Environment(rng=random.Random(42))
-    feedback = [environment.evaluate("Any candidate") for _ in range(1_000)]
-    assert sum(item.score for item in feedback) / len(feedback) > 0.65
-    assert sum(item.success for item in feedback) / len(feedback) > 0.65
+def test_grounded_environment_validates_real_content():
+    """Environment now uses real DB/business-rule grounding, not random scoring.
+
+    Verifies three cases:
+      1. A non-write-off text with sufficient words passes basic checks.
+      2. A write-off with an invalid token fails with an auth error.
+      3. A write-off with valid manager token / valid stock level passes.
+    """
+    environment = Environment()
+
+    # Case 1: plain text that's long enough passes basic checks
+    long_text = " ".join(["word"] * 15)
+    fb1 = environment.evaluate(long_text)
+    assert fb1.success is True
+
+    # Case 2: write-off with invalid token → auth failure (grounded)
+    bad_token_state = (
+        "Write off item_id 2 quantity 5.0 reason spoiled_before_use "
+        "api_token 'INVALID_TOKEN_XYZ'"
+    )
+    fb2 = environment.evaluate(bad_token_state)
+    assert fb2.success is False
+    assert any("token" in d.lower() or "api" in d.lower() for d in fb2.details)
+
+    # Case 3: valid manager token, valid item for that branch, quantity within stock
+    # Mona Farid (tok_mona_mgr_9f2a) is branch 1 manager; Yellow Onions item_id=2
+    # has 22.0 kg in stock — writing off 5.0 is valid.
+    good_state = (
+        "Write off item_id 2 quantity 5.0 reason spoiled_before_use "
+        "api_token tok_mona_mgr_9f2a"
+    )
+    fb3 = environment.evaluate(good_state)
+    assert fb3.success is True
 
 
 class ReflexionLLM:
