@@ -223,6 +223,22 @@ Graph RAG is only worth implementing if the documents have real entity relations
 """,
         "labels": ["rag", "bonus", "enhancement"],
     },
+    {
+        "title": "[EVIDENCE] Document, Demonstrate, and Validate the Complete Planning Agent",
+        "body": """## Problem
+The planning implementation (Decomposition-First, Dynamic Decomposition, Plan-and-Solve, Tree of Thoughts, LATS, Self-Refine, Reflexion, Grounded Environment) exists, but the required behavior must be reproducibly demonstrated, documented, and validated with empirical evidence.
+
+## Acceptance Criteria
+- [ ] Complete updated README with planning architecture, problem context, and embedded comparison table
+- [ ] Comprehensive planning demonstration report (`docs/planning_demo.md`) covering all 8 planning concerns with real traces
+- [ ] Empirical benchmark evaluation report (`docs/evaluation_report.md`) using the fixed test suite
+- [ ] Reproducible demonstration runner (`planning_eval/demo.py`) supporting all execution modes
+- [ ] Validated raw trace artifacts saved under `artifacts/`
+- [ ] Verified test suite execution with documented results
+- [ ] Grounded vs. ungrounded constraint validation demonstrated on live SQLite state
+""",
+        "labels": ["planning", "documentation", "evidence"],
+    },
 ]
 
 
