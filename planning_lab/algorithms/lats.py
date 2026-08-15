@@ -85,6 +85,9 @@ def _trajectory_reflections(node: LATSNode) -> list[str]:
     return list(reversed(path))
 
 
+from typing import Optional
+
+
 def lats(
     task: str,
     llm: BaseChatModel,
@@ -92,12 +95,21 @@ def lats(
     iterations: int = 2,
     n_actions: int = 2,
     exploration_weight: float = 1.414,
+    context: Optional[str] = None,
 ) -> LATSResult:
+    """Language Agent Tree Search (LATS) MCTS strategy.
+    
+    Combines Monte Carlo Tree Search (Selection via UCT, Expansion, Evaluation) with
+    external environment feedback, model value function estimation, and branch-level
+    verbal reflection backpropagation.
+    """
     if iterations < 1 or n_actions < 1:
         raise ValueError("iterations and n_actions must be positive")
     root = LATSNode(state="No attempt yet.")
     best = root
     completed_iterations = 0
+    ctx_str = f"\nPrerequisite Context / Observations:\n{context}" if context else ""
+
     for iteration in range(1, iterations + 1):
         completed_iterations = iteration
         leaf = _select_leaf(root, exploration_weight)
@@ -108,7 +120,7 @@ def lats(
             method="json_schema",
         ).invoke([
             ("system", "You are the action generator in LATS."),
-            ("human", f"""Task: {task}
+            ("human", f"""Task: {task}{ctx_str}
 Current trajectory/state:
 {leaf.state}
 Reflections learned from failed branches:
@@ -129,7 +141,7 @@ contain the fully written solution, not a placeholder or description of a soluti
                 method="json_schema",
             ).invoke([
                 ("system", "You are the LATS value function."),
-                ("human", f"""Task: {task}
+                ("human", f"""Task: {task}{ctx_str}
 Candidate state:
 {child.state}
 External score: {feedback.score}
@@ -141,7 +153,7 @@ Estimate the candidate's future usefulness."""),
             if not feedback.success:
                 response = llm.invoke([
                     ("system", "Create a branch-level LATS reflection grounded in environment feedback."),
-                    ("human", f"""Task: {task}
+                    ("human", f"""Task: {task}{ctx_str}
 Action: {child.action}
 Resulting state: {child.state}
 External feedback: {feedback.details}
@@ -158,6 +170,7 @@ Explain briefly why this branch failed and how a later expansion should change."
             if feedback.success:
                 return LATSResult(True, child.state, child.environment_score, completed_iterations, root)
     return LATSResult(False, best.state, best.environment_score, completed_iterations, root)
+
 
 
 def flatten_lats_tree(root: LATSNode) -> list[dict]:
