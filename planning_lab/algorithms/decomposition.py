@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+from typing import Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -59,6 +58,52 @@ Preserve the supplied goal exactly in the plan's goal field."""),
     plan = Plan.model_validate(payload)
     validate_plan_dag(plan)
     return plan
+
+
+class TaskExecutionRecord(BaseModel):
+    task_id: str
+    instruction: str
+    depends_on: list[str]
+    assigned_planner: str
+    status: str = "pending"
+    result: Optional[str] = None
+    error: Optional[str] = None
+
+
+class StructuredDecompositionResult(BaseModel):
+    goal: str
+    mode: str = "decomposition_first"
+    is_valid_dag: bool
+    topological_order: list[str]
+    execution_batches: list[list[str]]
+    tasks: list[TaskExecutionRecord]
+    final_output: Optional[str] = None
+
+
+def analyze_and_decompose(goal: str, llm: BaseChatModel) -> StructuredDecompositionResult:
+    """Perform complete Decomposition-First analysis, DAG validation, and batch scheduling."""
+    plan = decompose_goal(goal, llm)
+    validate_plan_dag(plan)
+    
+    tasks_records = [
+        TaskExecutionRecord(
+            task_id=task.id,
+            instruction=task.instruction,
+            depends_on=task.depends_on,
+            assigned_planner="pending",
+        )
+        for task in plan.tasks
+    ]
+    
+    return StructuredDecompositionResult(
+        goal=plan.goal,
+        mode="decomposition_first",
+        is_valid_dag=True,
+        topological_order=plan.topological_order(),
+        execution_batches=plan.execution_batches(),
+        tasks=tasks_records,
+    )
+
 
 
 def execute_plan(plan: Plan, llm: BaseChatModel, max_workers: int = 4) -> dict[str, str]:
