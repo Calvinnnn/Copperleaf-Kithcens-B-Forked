@@ -6,6 +6,7 @@ import pytest
 from planning_lab.algorithms import (
     Environment,
     deterministic_checks,
+    dynamic_decomposition,
     execute_plan,
     final_output,
     flatten_lats_tree,
