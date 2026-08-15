@@ -11,8 +11,7 @@ This module provides the core `PlanningAgent` which orchestrates:
 from __future__ import annotations
 
 import os
-import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -270,12 +269,12 @@ class PlanningAgent:
         elif mode == "dynamic":
             # Dynamic / Interleaved Decomposition
             history = dynamic_decomposition(request, llm, max_steps=max_steps)
-            traces: List[SubTaskTrace] = []
+            dynamic_traces: List[SubTaskTrace] = []
             replanning_events: List[str] = []
 
             for idx, (task_desc, result_str) in enumerate(history, 1):
                 planner = self.route_sub_task(task_desc)
-                traces.append(
+                dynamic_traces.append(
                     SubTaskTrace(
                         task_id=f"dyn_{idx}",
                         instruction=task_desc,
@@ -292,7 +291,7 @@ class PlanningAgent:
                 request=request,
                 mode="dynamic",
                 is_valid_dag=True,
-                sub_tasks=traces,
+                sub_tasks=dynamic_traces,
                 replanning_events=replanning_events,
                 final_answer=final_ans,
                 success=True,

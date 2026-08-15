@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+from typing import Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, ConfigDict, Field
@@ -84,8 +85,6 @@ def _trajectory_reflections(node: LATSNode) -> list[str]:
         node = node.parent
     return list(reversed(path))
 
-
-from typing import Optional
 
 
 def lats(

@@ -1,6 +1,6 @@
 """Public algorithm API; implementations live in one module per algorithm."""
 
-from .decomposition import decompose_goal, execute_plan, final_output
+from .decomposition import decompose_goal, execute_plan, final_output, validate_plan_dag, analyze_and_decompose
 from .dynamic_decomposition import dynamic_decomposition
 from .environment import Environment
 from .lats import flatten_lats_tree, lats
@@ -11,6 +11,7 @@ from .tree_of_thoughts import tree_of_thoughts
 
 __all__ = [
     "Environment",
+    "analyze_and_decompose",
     "decompose_goal",
     "deterministic_checks",
     "dynamic_decomposition",
@@ -22,4 +23,5 @@ __all__ = [
     "reflexion",
     "reflect_and_refine",
     "tree_of_thoughts",
+    "validate_plan_dag",
 ]
