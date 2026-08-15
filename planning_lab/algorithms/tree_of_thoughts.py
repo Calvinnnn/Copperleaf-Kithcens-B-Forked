@@ -1,3 +1,4 @@
+from typing import Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -22,8 +23,17 @@ def tree_of_thoughts(
     llm: BaseChatModel,
     depth: int = 2,
     beam_width: int = 2,
+    context: Optional[str] = None,
 ) -> list[Thought]:
+    """Tree of Thoughts (ToT) search strategy.
+    
+    Generates multiple candidate continuations per node, evaluates each candidate's
+    feasibility and progress, and prunes low-scoring branches using beam search.
+    Ideal for sub-tasks with multiple viable paths or strategic decision points.
+    """
     frontier = [Thought(state="Start", score=0.5, rationale="root")]
+    ctx_str = f"\nPrerequisite Context:\n{context}" if context else ""
+
     for _ in range(depth):
         candidates: list[Thought] = []
         for parent in frontier:
@@ -32,7 +42,7 @@ def tree_of_thoughts(
                 method="json_schema",
             ).invoke([
                 ("system", "Generate distinct candidate next steps for Tree-of-Thoughts search."),
-                ("human", f"""Problem: {problem}
+                ("human", f"""Problem: {problem}{ctx_str}
 Partial path: {parent.state}
 Propose two distinct promising continuations."""),
             ], temperature=0.5)
@@ -42,7 +52,7 @@ Propose two distinct promising continuations."""),
                     method="json_schema",
                 ).invoke([
                     ("system", "Independently evaluate a partial solution."),
-                    ("human", f"""Problem: {problem}
+                    ("human", f"""Problem: {problem}{ctx_str}
 Candidate path: {state}
 Score correctness, feasibility, and progress. Do not reward confident wording."""),
                 ], temperature=0.1)
@@ -53,3 +63,4 @@ Score correctness, feasibility, and progress. Do not reward confident wording.""
         if not frontier:
             break
     return frontier
+
