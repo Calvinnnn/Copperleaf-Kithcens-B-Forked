@@ -133,11 +133,13 @@ class PlanningAgent:
         instruction_lower = task_instruction.lower()
 
         if any(kw in instruction_lower for kw in ["search", "verify", "score", "audit", "security", "lats", "simulate"]):
-            return "lats"
-        elif any(kw in instruction_lower for kw in ["compare", "propose", "alternative", "strategy", "option", "tot", "explore"]):
+            # For "audit", ensure it actually implies deep inspection, not just summary
+            if "summary" not in instruction_lower and "report" not in instruction_lower:
+                return "lats"
+        if any(kw in instruction_lower for kw in ["compare", "propose", "alternative", "strategy", "option", "tot", "explore"]):
             return "tree_of_thoughts"
-        else:
-            return "plan_and_solve"
+            
+        return "plan_and_solve"
 
     def _execute_sub_task_with_planner(
         self,

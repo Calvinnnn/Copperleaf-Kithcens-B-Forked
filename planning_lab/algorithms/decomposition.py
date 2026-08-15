@@ -82,8 +82,7 @@ class StructuredDecompositionResult(BaseModel):
 
 def analyze_and_decompose(goal: str, llm: BaseChatModel) -> StructuredDecompositionResult:
     """Perform complete Decomposition-First analysis, DAG validation, and batch scheduling."""
-    plan = decompose_goal(goal, llm)
-    validate_plan_dag(plan)
+    plan = decompose_goal(goal, llm)  # decompose_goal already calls validate_plan_dag internally
     
     tasks_records = [
         TaskExecutionRecord(

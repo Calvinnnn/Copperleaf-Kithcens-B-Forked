@@ -46,7 +46,7 @@ def tree_of_thoughts(
 Partial path: {parent.state}
 Propose two distinct promising continuations."""),
             ], temperature=0.5)
-            for state in generated.candidates[:2]:
+            for state in generated.candidates[:beam_width]:
                 judged = llm.with_structured_output(
                     ThoughtEvaluation,
                     method="json_schema",

@@ -168,9 +168,6 @@ Explain briefly why this branch failed and how a later expansion should change."
                 best = child
             if feedback.success:
                 return LATSResult(True, child.state, child.environment_score, completed_iterations, root)
-    return LATSResult(False, best.state, best.environment_score, completed_iterations, root)
-
-
 
 def flatten_lats_tree(root: LATSNode) -> list[dict]:
     records: list[dict] = []
